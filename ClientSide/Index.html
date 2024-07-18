@@ -1,0 +1,79 @@
+﻿<!-- wwwroot/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Live Stream</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/3.1.19/signalr.min.js"></script>
+</head>
+<body>
+
+    <div onload="TestConnectivity(this)"></div>
+
+    <img id="video" src="" alt="Live Stream" width="640" height="480" />
+    <br />
+    <button id="start">Start</button>
+    <button id="stop">Stop</button>
+
+    <script>
+        function TestConnectivity(e) {
+            const requestOptions = {
+                method: "GET",
+                redirect: "follow"
+            };
+
+            fetch("https://localhost:7052/api/Stream/textconnectivity", requestOptions)
+                .then((response) => response.text())
+                .then((result) => {
+                    console.log('API CONNECTIVITY TEST', result);
+                    e.innerText = result;
+                })
+                .catch((error) => console.error(error));
+        }
+    </script>
+    <script>
+        debugger
+        
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("https://localhost:7052/livestreamhub")
+            .build();
+
+        connection.on("ReceiveFrame", (frame) => {
+            const img = document.getElementById("video");
+            img.src = `data:image/jpeg;base64,${frame}`;
+        });
+
+        connection
+            .start()
+            .then(() => {
+                console.log("SignalR connected.");
+            })
+            .catch((err) => {
+                console.error("SignalR connection error:", err);
+            });
+
+        document.getElementById("start").addEventListener("click", () => {
+            fetch("https://localhost:7052/api/stream/start")
+                .then((response) => response.text())
+                .then((message) => {
+                    console.log(message);
+                })
+                .catch((err) => console.error("Error starting stream:", err));
+        });
+
+        document.getElementById("stop").addEventListener("click", () => {
+            fetch("https://localhost:7052/api/stream/stop")
+                .then((response) => response.text())
+                .then((message) => {
+                    console.log(message);
+                })
+                .catch((err) => console.error("Error stopping stream:", err));
+        });
+    </script>
+</body>
+</html>
+
+<!--ffmpeg -i rtsp://admin:Securityr%26d1@192.168.8.143:554/Streaming/Channels/101
+-f mp4 -codec:v copy -an -movflags frag_keyframe+empty_moov - | ffplay --->
